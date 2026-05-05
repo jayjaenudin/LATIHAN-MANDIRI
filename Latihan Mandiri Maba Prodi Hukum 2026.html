@@ -1,0 +1,173 @@
+<html lang="id"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ujian Mandiri Hukum UT - Versi Abadi</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root { --p-blue: #1e40af; --gold: #b8860b; --correct: #ffff00; --wrong: #ef4444; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f9ff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .quiz-container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border: 4px solid var(--p-blue); position: relative; }
+        h1 { color: var(--p-blue); text-align: center; font-size: 1.3rem; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-top: 0; }
+        .upload-area { border: 2px dashed var(--p-blue); padding: 25px; text-align: center; background: #f8fafc; border-radius: 10px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 1rem; }
+        #resume-btn { background: #f59e0b; color: white; display: none; margin-bottom: 15px; }
+        #save-btn { background: #16a34a; color: white; }
+        #next-btn { background: var(--p-blue); color: white; }
+        .opt-btn { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; text-align: left; margin-bottom: 8px; font-size: 0.95rem; }
+        .correct { background: var(--correct) !important; color: black !important; font-weight: bold; border: 2px solid #d4d400 !important; }
+        .incorrect { background: var(--wrong) !important; color: white !important; font-weight: bold; }
+        .explanation { margin-top: 15px; padding: 12px; background: #fffbeb; border-left: 5px solid var(--p-blue); font-size: 0.85rem; border-radius: 5px; color: #92400e; }
+        .hidden { display: none !important; }
+        .header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <h1>Simulasi Ujian Prodi Hukum</h1>
+
+    <div id="front-page" class="upload-area hidden">
+        <button id="resume-btn" class="btn" onclick="startWithSaved()">▶ LANJUTKAN SOAL TERAKHIR</button>
+        <p style="font-weight: bold; margin-bottom: 10px;">Unggah File Excel</p>
+        <input type="file" id="fileUploader" accept=".xlsx, .xls">
+    </div>
+
+    <div id="game-page" class="hidden">
+        <div class="header-info">
+            <span id="progress-text">SOAL 30 / 30</span>
+            <span id="subject-label" style="background:var(--p-blue); color:white; padding:2px 10px; border-radius:15px;">Ilmu Negara</span>
+        </div>
+        <div id="question-text" style="font-weight: bold; margin-bottom: 15px; line-height: 1.5;">Sifat aturan negara berlaku untuk semua orang disebut...</div>
+        <div id="options-container"><button class="opt-btn" disabled=""><strong>A.</strong> Memaksa</button><button class="opt-btn incorrect" disabled=""><strong>B.</strong> Monopoli</button><button class="opt-btn correct" disabled=""><strong>C.</strong> Mencakup Semua</button><button class="opt-btn" disabled=""><strong>D.</strong> Abadi</button></div>
+        <div id="explanation-box" class="explanation"><b>PENJELASAN:</b> All-embracing: hukum mengikat setiap individu tanpa kecuali.</div>
+        <button id="next-btn" class="btn" onclick="goNext()">Lanjut →</button>
+    </div>
+
+    <div id="result-page" class="" style="text-align: center;">
+        <h2 style="margin:0;">Hasil Skor:</h2>
+        <div id="final-score" style="font-size: 4rem; font-weight: 900; color: var(--p-blue); margin: 10px 0;">27</div>
+        <button id="save-btn" class="btn" onclick="saveApplication()">💾 SIMPAN APLIKASI &amp; DATA (HTML)</button>
+        <button class="btn" onclick="resetToFront()" style="background:#334155; color:white;">KEMBALI KE DEPAN</button>
+    </div>
+
+    <div id="hidden-db" class="hidden">W3sic3ViIjoiUElIIiwicSI6IlNpYXBhIHRva29oIHlhbmcgbWVuZ2VtdWtha2FuIHRpZ2EgbmlsYWkgZGFzYXIgaHVrdW0gKEtlYWRpbGFuLCBLZW1hbmZhYXRhbiwgS2VwYXN0aWFuKT8iLCJvcHRzIjp7IkEiOiJIYW5zIEtlbHNlbiIsIkIiOiJHdXN0YXYgUmFkYnJ1Y2giLCJDIjoiQXJpc3RvdGVsZXMiLCJEIjoiUm9zY29lIFBvdW5kIn0sImtleSI6IkIiLCJleHAiOiJHdXN0YXYgUmFkYnJ1Y2ggbWVuZWthbmthbiBrZXNlaW1iYW5nYW4gYW50YXJhIGtlYWRpbGFuLCBrZXBhc3RpYW4sIGRhbiBrZW1hbmZhYXRhbi4ifSx7InN1YiI6IlBJSCIsInEiOiJJc3RpbGFoIFViaSBTb2NpZXRhcyBJYmkgSXVzIG1lbWlsaWtpIGFydGkuLi4iLCJvcHRzIjp7IkEiOiJIdWt1bSBhZGFsYWggcGVyaW50YWgiLCJCIjoiRGkgbWFuYSBhZGEgbWFzeWFyYWthdCwgZGkgc2l0dSBhZGEgaHVrdW0iLCJDIjoiSHVrdW0gdW50dWsga2VhZGlsYW4iLCJEIjoiSHVrdW0gdGlkYWsgdGVydHVsaXMifSwia2V5IjoiQiIsImV4cCI6IlVuZ2thcGFuIENpY2VybzogaHVrdW0gc2VsYWx1IGFkYSBkYWxhbSBpbnRlcmFrc2kgbWFudXNpYS4ifSx7InN1YiI6IlBJSCIsInEiOiJIdWt1bSB5YW5nIGJlcmxha3Ugc2FhdCBpbmkgZGkgc3VhdHUgbmVnYXJhIGRpc2VidXQuLi4iLCJvcHRzIjp7IkEiOiJJdXMgQ29uc3RpdHVlbmR1bSIsIkIiOiJJdXMgU29saSIsIkMiOiJJdXMgQ29uc3RpdHV0dW0iLCJEIjoiSXVzIFNhbmd1aW5pcyJ9LCJrZXkiOiJDIiwiZXhwIjoiSXVzIENvbnN0aXR1dHVtIGFkYWxhaCBodWt1bSBwb3NpdGlmIHlhbmcgc2VkYW5nIGJlcmxha3Ugc2VrYXJhbmcuIn0seyJzdWIiOiJQSUgiLCJxIjoiTWFudXNpYSBzZWJhZ2FpIG1ha2hsdWsgc29zaWFsIHlhbmcgc2VsYWx1IGluZ2luIGhpZHVwIGJlcnNhbWEgZGlzZWJ1dC4uLiIsIm9wdHMiOnsiQSI6Ilpvb24gUG9saXRpa29uIiwiQiI6IkhvbW8gSG9taW5pIEx1cHVzIiwiQyI6IlBlcnNvbmEgU3RhbmRpIiwiRCI6IkhvbW8gU2FwaWVuIn0sImtleSI6IkEiLCJleHAiOiJJc3RpbGFoIEFyaXN0b3RlbGVzIHVudHVrIG1ha2hsdWsgeWFuZyB0aWRhayBiaXNhIGhpZHVwIHNlbmRpcmkuIn0seyJzdWIiOiJQSUgiLCJxIjoiTm9ybWEgeWFuZyBzYW5rc2lueWEgYmVyYXNhbCBkYXJpIGRpcmkgc2VuZGlyaSAocmFzYSBtZW55ZXNhbCkgYWRhbGFoLi4uIiwib3B0cyI6eyJBIjoiTm9ybWEgSHVrdW0iLCJCIjoiTm9ybWEgS2Vzb3BhbmFuIiwiQyI6Ik5vcm1hIEFnYW1hIiwiRCI6Ik5vcm1hIEtlc3VzaWxhYW4ifSwia2V5IjoiRCIsImV4cCI6IkJlcnN1bWJlciBkYXJpIGhhdGkgbnVyYW5pOyBwZWxhbmdnYXJhbm55YSBiZXJha2liYXQgcGVueWVzYWxhbiBiYXRpbi4ifSx7InN1YiI6IlBISSIsInEiOiJUYXRhIGh1a3VtIEluZG9uZXNpYSBiZXJzdW1iZXIgcGFkYSBQcm9rbGFtYXNpIGRhbi4uLiIsIm9wdHMiOnsiQSI6IlVVRCAxOTQ1IiwiQiI6IkRla3JpdCBQcmVzaWRlbiIsIkMiOiJQYW5jYXNpbGEiLCJEIjoiU3VwZXJzZW1hciJ9LCJrZXkiOiJBIiwiZXhwIjoiUHJva2xhbWFzaSBhZGFsYWggbm9ybWEgcGVydGFtYTsgVVVEIDE5NDUgYWRhbGFoIGxhbmRhc2FuIHRlcnR1bGlzbnlhLiJ9LHsic3ViIjoiUEhJIiwicSI6IlVuc3VyIHV0YW1hIG1lbnVydXQgYWxpcmFuIFBvc2l0aXZpc21lIGFkYWxhaC4uLiIsIm9wdHMiOnsiQSI6Ik1vcmFsaXRhcyIsIkIiOiJQZXJpbnRhaCBQZW5ndWFzYSIsIkMiOiJLZWFkaWxhbiBJbGFoaSIsIkQiOiJLZWJpYXNhYW4gQWRhdCJ9LCJrZXkiOiJCIiwiZXhwIjoiQWxpcmFuIGluaSBtZW1hbmRhbmcgaHVrdW0gc2ViYWdhaSBwZXJpbnRhaCBkYXJpIHBlbmd1YXNhIHlhbmcgYmVyZGF1bGF0LiJ9LHsic3ViIjoiUEhJIiwicSI6IkFzYXMgTGV4IFNwZWNpYWxpcyBEZXJvZ2F0IExlZ2kgR2VuZXJhbGkgYXJ0aW55YS4uLiIsIm9wdHMiOnsiQSI6Ikh1a3VtIGJhcnUgaGFwdXMgbGFtYSIsIkIiOiJIdWt1bSB0aW5nZ2kgaGFwdXMgcmVuZGFoIiwiQyI6Ikh1a3VtIGtodXN1cyBzYW1waW5na2FuIHVtdW0iLCJEIjoiSHVrdW0gYWRhbGFoIHBhc3RpIn0sImtleSI6IkMiLCJleHAiOiJBdHVyYW4ga2h1c3VzIG1lbmdhbGFoa2FuIGF0dXJhbiB5YW5nIGJlcnNpZmF0IHVtdW0uIn0seyJzdWIiOiJQSEkiLCJxIjoiSHVrdW0geWFuZyBtZW5nYXR1ciBrZXBlbnRpbmdhbiBwZXJzZW9yYW5nYW4gYWRhbGFoLi4uIiwib3B0cyI6eyJBIjoiSHVrdW0gUHVibGlrIiwiQiI6Ikh1a3VtIFNpcGlsL1ByaXZhdCIsIkMiOiJIdWt1bSBQaWRhbmEiLCJEIjoiSHVrdW0gVGF0YSBOZWdhcmEifSwia2V5IjoiQiIsImV4cCI6Ikh1a3VtIFByaXZhdCAoUGVyZGF0YSkgZm9rdXMgcGFkYSBodWJ1bmdhbiBhbnRhciBpbmRpdmlkdS4ifSx7InN1YiI6IlBISSIsInEiOiJTYWxhaCBzYXR1IHN1bWJlciBodWt1bSBmb3JtYWwgZGkgSW5kb25lc2lhIGFkYWxhaC4uLiIsIm9wdHMiOnsiQSI6IktleWFraW5hbiIsIkIiOiJEb2t0cmluIiwiQyI6Ik5pYXQiLCJEIjoiUGVyYXNhYW4ifSwia2V5IjoiQiIsImV4cCI6IkRva3RyaW4gYWRhbGFoIHBlbmRhcGF0IGFobGkgaHVrdW0geWFuZyBtZW5qYWRpIGFjdWFuIGhha2ltLiJ9LHsic3ViIjoiSWxtdSBOZWdhcmEiLCJxIjoiVW5zdXIga29uc3RpdHV0aWYgbmVnYXJhIHRlcmRpcmkgZGFyaS4uLiIsIm9wdHMiOnsiQSI6IlJha3lhdCwgV2lsYXlhaCwgUGVuZ2FrdWFuIiwiQiI6IlJha3lhdCwgV2lsYXlhaCwgUGVtZXJpbnRhaCBCZXJkYXVsYXQiLCJDIjoiV2lsYXlhaCwgVVVELCBSYWt5YXQiLCJEIjoiUGVtZXJpbnRhaCwgVGVudGFyYSwgUmFreWF0In0sImtleSI6IkIiLCJleHAiOiJUaWdhIHVuc3VyIG11dGxhayBzZXN1YWkgS29udmVuc2kgTW9udGV2aWRlby4ifSx7InN1YiI6IklsbXUgTmVnYXJhIiwicSI6IlRlb3JpIG5lZ2FyYSB0ZXJqYWRpIGthcmVuYSBwZXJqYW5qaWFuIGFudGFyIGluZGl2aWR1IGRpc2VidXQuLi4iLCJvcHRzIjp7IkEiOiJUZW9yaSBLZXR1aGFuYW4iLCJCIjoiVGVvcmkgS2VrdWF0YW4iLCJDIjoiVGVvcmkgS29udHJhayBTb3NpYWwiLCJEIjoiVGVvcmkgT3JnYW5payJ9LCJrZXkiOiJDIiwiZXhwIjoiRGl5YWtpbmkgb2xlaCBMb2NrZSAmIFJvdXNzZWF1IHNlYmFnYWkga2VzZXBha2F0YW4gbWFzeWFyYWthdC4ifSx7InN1YiI6IklsbXUgTmVnYXJhIiwicSI6IlRva29oIHlhbmcgbWVtYmFnaSBrZWt1YXNhYW4gKFRyaWFzIFBvbGl0aWNhKSBhZGFsYWguLi4iLCJvcHRzIjp7IkEiOiJKb2huIExvY2tlIiwiQiI6Ik1vbnRlc3F1aWV1IiwiQyI6Ik1hY2hpYXZlbGxpIiwiRCI6IlRob21hcyBIb2JiZXMifSwia2V5IjoiQiIsImV4cCI6Ik1lbWJhZ2kga2VrdWFzYWFuIGphZGkgTGVnaXNsYXRpZiwgRWtzZWt1dGlmLCBkYW4gWXVkaXNpYWwuIn0seyJzdWIiOiJJbG11IE5lZ2FyYSIsInEiOiJQZW5nYWt1YW4geWFuZyBoYW55YSBiZXJzaWZhdCBrZW55YXRhYW4gZmlzaWsgZGlzZWJ1dC4uLiIsIm9wdHMiOnsiQSI6IkRlIEp1cmUiLCJCIjoiRGUgRmFjdG8iLCJDIjoiS29uc3RpdHV0aWYiLCJEIjoiS29sZWt0aWYifSwia2V5IjoiQiIsImV4cCI6IkJlcmRhc2Fya2FuIGZha3RhIGJhaHdhIG5lZ2FyYSB0ZXJzZWJ1dCBueWF0YSBhZGEgZGFuIG1lbWVyaW50YWguIn0seyJzdWIiOiJJbG11IE5lZ2FyYSIsInEiOiJTaWZhdCBuZWdhcmEgeWFuZyBtYW1wdSBtZW1ha3Nha2FuIGtlcGF0dWhhbiBkaXNlYnV0Li4uIiwib3B0cyI6eyJBIjoiU2lmYXQgTW9ub3BvbGkiLCJCIjoiU2lmYXQgTWVuY2FrdXAgU2VtdWEiLCJDIjoiU2lmYXQgTWVtYWtzYSIsIkQiOiJTaWZhdCBCZXJkYXVsYXQifSwia2V5IjoiQyIsImV4cCI6Ik1lbmdndW5ha2FuIGFwYXJhdCAocG9saXNpL2pha3NhKSBhZ2FyIGF0dXJhbiBkaXRhYXRpLiJ9LHsic3ViIjoiUElIIiwicSI6Ikh1a3VtIHlhbmcgYmVyaXNpIHBlcmludGFoIGRhbiBsYXJhbmdhbiAoaXNpIGh1a3VtKSBkaXNlYnV0Li4uIiwib3B0cyI6eyJBIjoiSHVrdW0gTWF0ZXJpaWwiLCJCIjoiSHVrdW0gRm9ybWlsIiwiQyI6Ikh1a3VtIE9iamVrdGlmIiwiRCI6Ikh1a3VtIFN1Ympla3RpZiJ9LCJrZXkiOiJBIiwiZXhwIjoiTWVuZ2F0dXIgc3Vic3RhbnNpIGh1YnVuZ2FuIGh1a3VtIChhcGEgeWFuZyBib2xlaCAmIHRpZGFrKS4ifSx7InN1YiI6IlBISSIsInEiOiJBcGEgcGVyYmVkYWFuIHV0YW1hIGFudGFyYSBQSUggZGFuIFBIST8iLCJvcHRzIjp7IkEiOiJQSEkgbGViaWggbHVhcyIsIkIiOiJQSUggZm9rdXMgaHVrdW0gSW5kb25lc2lhIiwiQyI6IlBISSBmb2t1cyBodWt1bSBwb3NpdGlmIFJJIiwiRCI6IlRpZGFrIGFkYSBwZXJiZWRhYW4ifSwia2V5IjoiQyIsImV4cCI6IlBISSBtZW1wZWxhamFyaSBodWt1bSB5YW5nIGJlcmxha3UgZGkgSW5kb25lc2lhIHNhYXQgaW5pLiJ9LHsic3ViIjoiSWxtdSBOZWdhcmEiLCJxIjoiVGVvcmkga2VrdWFzYWFuIG5lZ2FyYSBiZXJhc2FsIGRhcmkgVHVoYW4gZGlzZWJ1dC4uLiIsIm9wdHMiOnsiQSI6IlRlb3JpIFRlb2tyYXNpIiwiQiI6IlRlb3JpIFBlcmphbmppYW4iLCJDIjoiVGVvcmkgS2VrdWF0YW4iLCJEIjoiVGVvcmkgSHVrdW0gQWxhbSJ9LCJrZXkiOiJBIiwiZXhwIjoiUGVuZ3Vhc2EgZGlhbmdnYXAgc2ViYWdhaSB3YWtpbCBUdWhhbiBkaSBkdW5pYS4ifSx7InN1YiI6IlBLbiIsInEiOiJBc2FzIGtld2FyZ2FuZWdhcmFhbiBiZXJkYXNhcmthbiBrZXR1cnVuYW4gZGlzZWJ1dC4uLiIsIm9wdHMiOnsiQSI6Ikl1cyBTb2xpIiwiQiI6Ikl1cyBTYW5ndWluaXMiLCJDIjoiTmF0dXJhbGlzYXNpIiwiRCI6IkFwYXRyaWRlIn0sImtleSI6IkIiLCJleHAiOiJLZXdhcmdhbmVnYXJhYW4gbWVuZ2lrdXRpIGRhcmFoL2tldHVydW5hbiBvcmFuZyB0dWEuIn0seyJzdWIiOiJQSUgiLCJxIjoiUGVtYnVrdWFuIGh1a3VtIHNlY2FyYSBzaXN0ZW1hdGlzIGRhbGFtIGtpdGFiIGRpc2VidXQuLi4iLCJvcHRzIjp7IkEiOiJLbGFzaWZpa2FzaSIsIkIiOiJJbnRlcnByZXRhc2kiLCJDIjoiS29kaWZpa2FzaSIsIkQiOiJMZWdpc2xhc2kifSwia2V5IjoiQyIsImV4cCI6IlNlcGVydGkgS1VIUGVyZGF0YSBhdGF1IEtVSFAgeWFuZyBkaXN1c3VuIHRlcmF0dXIuIn0seyJzdWIiOiJQSEkiLCJxIjoiRmFrdG9yIHNvc2lhbC9la29ub21pIHlhbmcgbWVuZW50dWthbiBpc2kgaHVrdW0gZGlzZWJ1dC4uLiIsIm9wdHMiOnsiQSI6IlN1bWJlciBGb3JtYWwiLCJCIjoiU3VtYmVyIE1hdGVyaWFsIiwiQyI6Ill1cmlzcHJ1ZGVuc2kiLCJEIjoiVHJha3RhdCJ9LCJrZXkiOiJCIiwiZXhwIjoiS2V5YWtpbmFuIG1hc3lhcmFrYXQgeWFuZyBtZW1lbmdhcnVoaSBwZW1idWF0YW4gYXR1cmFuLiJ9LHsic3ViIjoiSWxtdSBOZWdhcmEiLCJxIjoiQmVudHVrIG5lZ2FyYSBkZW5nYW4ga2VrdWFzYWFuIHRlcnB1c2F0IGRpc2VidXQuLi4iLCJvcHRzIjp7IkEiOiJOZWdhcmEgRmVkZXJhc2kiLCJCIjoiTmVnYXJhIEtlc2F0dWFuIiwiQyI6IktvbmZlZGVyYXNpIiwiRCI6IlNlcmlrYXQgTmVnYXJhIn0sImtleSI6IkIiLCJleHAiOiJIYW55YSBhZGEgc2F0dSBwZW1lcmludGFoIHB1c2F0IHlhbmcgbWVtZWdhbmcga2VkYXVsYXRhbi4ifSx7InN1YiI6IlBhbmNhc2lsYSIsInEiOiJGdW5nc2kgUGFuY2FzaWxhIHNlYmFnYWkgR3J1bmRub3JtIGJlcmFydGkuLi4iLCJvcHRzIjp7IkEiOiJQZWxlbmdrYXAgc2FqYSIsIkIiOiJMYW5kYXNhbiBzZW11YSBhdHVyYW4gaHVrdW0iLCJDIjoiQmVybGFrdSB1bnR1ayBwYXJwb2wgc2FqYSIsIkQiOiJUaWRhayBtZW5naWthdCJ9LCJrZXkiOiJCIiwiZXhwIjoiUGFuY2FzaWxhIGFkYWxhaCBzdW1iZXIgZGFyaSBzZWdhbGEgc3VtYmVyIGh1a3VtIEluZG9uZXNpYS4ifSx7InN1YiI6IlBJSCIsInEiOiJBbGlyYW4gaHVrdW0geWFuZyBtZW5nYW5nZ2FwIGh1a3VtIGJlcnNpZmF0IHVuaXZlcnNhbCBhZGFsYWguLi4iLCJvcHRzIjp7IkEiOiJQb3NpdGl2aXNtZSIsIkIiOiJIdWt1bSBBbGFtIiwiQyI6IkFsaXJhbiBTZWphcmFoIiwiRCI6IlNvc2lvbG9naXMifSwia2V5IjoiQiIsImV4cCI6Ik1leWFraW5pIGFkYSBodWt1bSBhYmFkaSBkYXJpIFR1aGFuL0FrYWwgZGkgYXRhcyBodWt1bSBtYW51c2lhLiJ9LHsic3ViIjoiUEhJIiwicSI6Ikh1a3VtIHlhbmcgbWVuZ2F0dXIgcHJvc2VkdXIgZGkgcGVuZ2FkaWxhbiBkaXNlYnV0Li4uIiwib3B0cyI6eyJBIjoiSHVrdW0gUGVyZGF0YSIsIkIiOiJIdWt1bSBQaWRhbmEiLCJDIjoiSHVrdW0gRm9ybWlsIC8gQWNhcmEiLCJEIjoiSHVrdW0gUHVibGlrIn0sImtleSI6IkMiLCJleHAiOiJUYXRhIGNhcmEgbWVtcGVydGFoYW5rYW4gaHVrdW0gbWF0ZXJpaWwgZGkgZGVwYW4gaGFraW0uIn0seyJzdWIiOiJJbG11IE5lZ2FyYSIsInEiOiJUdWp1YW4gdXRhbWEgbmVnYXJhIG1lbnVydXQgQWwtRmFyYWJpIGFkYWxhaC4uLiIsIm9wdHMiOnsiQSI6Iktla3Vhc2FhbiBtdXRsYWsiLCJCIjoiTWVuY2FwYWkga2ViYWhhZ2lhYW4iLCJDIjoiS2VrYXlhYW4iLCJEIjoiTWlsaXRlciBrdWF0In0sImtleSI6IkIiLCJleHAiOiJNZXd1anVka2FuIGtlYmFoYWdpYWFuIChTYSdhZGFoKSBiYWdpIHNlbHVydWggd2FyZ2FueWEuIn0seyJzdWIiOiJQS24iLCJxIjoiU3RhdHVzIHNlc2VvcmFuZyBkZW5nYW4gZHVhIGtld2FyZ2FuZWdhcmFhbiBkaXNlYnV0Li4uIiwib3B0cyI6eyJBIjoiQXBhdHJpZGUiLCJCIjoiQmlwYXRyaWRlIiwiQyI6Ik5hdHVyYWxpc2FzaSIsIkQiOiJPcHNpIn0sImtleSI6IkIiLCJleHAiOiJUZXJqYWRpIGFraWJhdCBwZXJiZWRhYW4gYXNhcyAoU29saSB2cyBTYW5ndWluaXMpIGFudGFyIG5lZ2FyYS4ifSx7InN1YiI6IlBJSCIsInEiOiJLZWt1YXNhYW4geWFuZyBkaWxpbmR1bmdpIGh1a3VtIGJhZ2kgc3ViamVrIGh1a3VtIGRpc2VidXQuLi4iLCJvcHRzIjp7IkEiOiJUYW5nZ3VuZyBqYXdhYiIsIkIiOiJLZXdhamliYW4iLCJDIjoiSGFrIiwiRCI6Ildld2VuYW5nIn0sImtleSI6IkMiLCJleHAiOiJLZXdlbmFuZ2FuIHVudHVrIG1lbGFrdWthbiBhdGF1IG1lbnVudHV0IHNlc3VhdHUuIn0seyJzdWIiOiJQSEkiLCJxIjoiUHV0dXNhbiBoYWtpbSB0ZXJkYWh1bHUgeWFuZyBkaWlrdXRpIGhha2ltIGxhaW4gZGlzZWJ1dC4uLiIsIm9wdHMiOnsiQSI6IlRyYWt0YXQiLCJCIjoiRG9rdHJpbiIsIkMiOiJZdXJpc3BydWRlbnNpIiwiRCI6IlVuZGFuZy1VbmRhbmcifSwia2V5IjoiQyIsImV4cCI6IlNhbGFoIHNhdHUgc3VtYmVyIGh1a3VtIGZvcm1hbCBoYXNpbCBkYXJpIHByYWt0aWsgcGVyYWRpbGFuLiJ9LHsic3ViIjoiSWxtdSBOZWdhcmEiLCJxIjoiU2lmYXQgYXR1cmFuIG5lZ2FyYSBiZXJsYWt1IHVudHVrIHNlbXVhIG9yYW5nIGRpc2VidXQuLi4iLCJvcHRzIjp7IkEiOiJNZW1ha3NhIiwiQiI6Ik1vbm9wb2xpIiwiQyI6Ik1lbmNha3VwIFNlbXVhIiwiRCI6IkFiYWRpIn0sImtleSI6IkMiLCJleHAiOiJBbGwtZW1icmFjaW5nOiBodWt1bSBtZW5naWthdCBzZXRpYXAgaW5kaXZpZHUgdGFucGEga2VjdWFsaS4ifV0=</div>
+</div>
+
+<script>
+    let activeData = [];
+    let currentIndex = 0;
+    let currentScore = 0;
+
+    // OTOMATIS LOAD DATA SAAT BUKA FILE
+    window.onload = () => {
+        const db = document.getElementById('hidden-db').innerText;
+        if (db && db.trim().length > 10) {
+            try {
+                activeData = JSON.parse(atob(db.trim()));
+                document.getElementById('resume-btn').style.display = 'block';
+            } catch(e) { console.log("Gagal memuat data."); }
+        }
+    };
+
+    function startWithSaved() {
+        showGame();
+    }
+
+    document.getElementById('fileUploader').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            
+            activeData = json.map(item => ({
+                sub: item["Mata Kuliah"] || "UMUM",
+                q: item["Pertanyaan"] || item["Soal"],
+                opts: { A: item["Pilihan A"] || item["A"], B: item["Pilihan B"] || item["B"], C: item["Pilihan C"] || item["C"], D: item["Pilihan D"] || item["D"] },
+                key: (item["Kunci Jawaban"] || item["Kunci"] || "").toString().toUpperCase().trim(),
+                exp: item["Penjelasan"] || item["Pembahasan"] || "Pelajari modul terkait."
+            }));
+            showGame();
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function showGame() {
+        document.getElementById('front-page').classList.add('hidden');
+        document.getElementById('result-page').classList.add('hidden');
+        document.getElementById('game-page').classList.remove('hidden');
+        currentIndex = 0;
+        currentScore = 0;
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const item = activeData[currentIndex];
+        document.getElementById('progress-text').innerText = `SOAL ${currentIndex + 1} / ${activeData.length}`;
+        document.getElementById('subject-label').innerText = item.sub;
+        document.getElementById('question-text').innerText = item.q;
+        document.getElementById('explanation-box').classList.add('hidden');
+        document.getElementById('next-btn').classList.add('hidden');
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        ['A', 'B', 'C', 'D'].forEach(l => {
+            if(item.opts[l]) {
+                const b = document.createElement('button');
+                b.className = 'opt-btn';
+                b.innerHTML = `<strong>${l}.</strong> ${item.opts[l]}`;
+                b.onclick = () => validate(l, b);
+                container.appendChild(b);
+            }
+        });
+    }
+
+    function validate(choice, btn) {
+        const key = activeData[currentIndex].key;
+        const btns = document.querySelectorAll('.opt-btn');
+        if(choice === key) { currentScore++; btn.classList.add('correct'); }
+        else { btn.classList.add('incorrect'); btns.forEach(b => { if(b.innerText.startsWith(key)) b.classList.add('correct'); }); }
+        
+        document.getElementById('explanation-box').innerHTML = `<b>PENJELASAN:</b> ${activeData[currentIndex].exp}`;
+        document.getElementById('explanation-box').classList.remove('hidden');
+        document.getElementById('next-btn').classList.remove('hidden');
+        btns.forEach(b => b.disabled = true);
+    }
+
+    function goNext() {
+        currentIndex++;
+        if (currentIndex < activeData.length) renderQuestion();
+        else {
+            document.getElementById('game-page').classList.add('hidden');
+            document.getElementById('result-page').classList.remove('hidden');
+            document.getElementById('final-score').innerText = Math.round((currentScore / activeData.length) * 100);
+        }
+    }
+
+    // RESET MANUAL (BIAR DATA TIDAK HILANG)
+    function resetToFront() {
+        document.getElementById('result-page').classList.add('hidden');
+        document.getElementById('game-page').classList.add('hidden');
+        document.getElementById('front-page').classList.remove('hidden');
+        if(activeData.length > 0) {
+            document.getElementById('resume-btn').style.display = 'block';
+        }
+    }
+
+    function saveApplication() {
+        const b64Data = btoa(JSON.stringify(activeData));
+        document.getElementById('hidden-db').innerText = b64Data;
+        
+        const currentHTML = document.documentElement.outerHTML;
+        const blob = new Blob([currentHTML], { type: 'text/html' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'Aplikasi_Ujian_Hukum_UT_ABADI.html';
+        link.click();
+    }
+</script>
+
+</body></html>
